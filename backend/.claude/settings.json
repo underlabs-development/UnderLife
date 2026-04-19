@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(uv run pytest:*)",
+      "Bash(LOGFIRE_TOKEN=test uv run pytest:*)",
+      "Bash(DJANGO_SETTINGS_MODULE=lexroom_backend.settings.testing uv run pytest:*)",
+      "Bash(LOGFIRE_TOKEN=test DJANGO_SETTINGS_MODULE=lexroom_backend.settings.testing uv run pytest:*)",
+      "Bash(uv run ruff check:*)",
+      "Bash(uv run ruff format:*)",
+      "Bash(uv run mypy:*)",
+      "Bash(uv run pre-commit run:*)",
+      "Bash(uv run python manage.py makemigrations --check --dry-run)",
+      "Bash(LOGFIRE_TOKEN=test DJANGO_SETTINGS_MODULE=lexroom_backend.settings.pre_commit uv run python manage.py makemigrations --check --dry-run)",
+      "Bash(uv sync --frozen)",
+      "Bash(uv run coverage:*)",
+      "Bash(git status)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git branch:*)",
+      "Bash(git stash list)",
+      "Bash(gh pr view:*)",
+      "Bash(gh pr list:*)",
+      "Bash(gh pr diff:*)",
+      "Bash(gh pr checks:*)"
+    ],
+    "deny": [
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(rm -rf:*)",
+      "Bash(git commit --no-verify:*)",
+      "Bash(git commit -n:*)"
+    ]
+  }
+}

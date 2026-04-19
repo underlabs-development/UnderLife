@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m pytest:*)",
+      "Bash(uv run pre-commit:*)",
+      "Bash(LOGFIRE_TOKEN=test uv run pytest:*)",
+      "Bash(git -C /Users/michelesottocasa/lexroom/lexroom-backend log --oneline -5)",
+      "Bash(git -C /Users/michelesottocasa/lexroom/lexroom-backend log --oneline main..HEAD)",
+      "Bash(git -C /Users/michelesottocasa/lexroom/lexroom-backend diff main...HEAD --stat)",
+      "Bash(tail:*)",
+      "Bash(grep:*)",
+      "Bash(grep test_:*)",
+      "Bash(uv run:*)",
+      "Bash(DJANGO_SETTINGS_MODULE=lexroom_backend.settings.testing uv run pytest tests/utils/unittests/test_email_utils.py -v)",
+      "mcp__claude_ai_Linear__list_projects",
+      "mcp__claude_ai_Linear__list_issue_statuses",
+      "mcp__claude_ai_Linear__get_issue",
+      "Bash(git log:*)",
+      "Bash(LOGFIRE_TOKEN=test DJANGO_SETTINGS_MODULE=lexroom_backend.settings.pre_commit uv run python manage.py makemigrations --check --dry-run)"
+    ]
+  }
+}

@@ -1,0 +1,270 @@
+@import "tailwindcss";
+
+/* ── UnderOS Cyberpunk Design System ── */
+
+:root {
+  --bg-void: #06060c;
+  --bg-surface: #0c0c14;
+  --bg-card: #10101c;
+  --bg-card-hover: #161628;
+
+  --neon-primary: #00ffaa;
+  --neon-primary-rgb: 0, 255, 170;
+  --neon-cyan: #00e5ff;
+  --neon-cyan-rgb: 0, 229, 255;
+  --neon-magenta: #ff00aa;
+  --neon-magenta-rgb: 255, 0, 170;
+
+  --text-primary: #e0fff4;
+  --text-secondary: #8ba4a0;
+  --text-muted: #4a5e5a;
+
+  --border-subtle: rgba(0, 255, 170, 0.08);
+  --border-glow: rgba(0, 255, 170, 0.25);
+
+  --glow-sm: 0 0 8px rgba(var(--neon-primary-rgb), 0.3);
+  --glow-md: 0 0 20px rgba(var(--neon-primary-rgb), 0.25);
+  --glow-lg: 0 0 40px rgba(var(--neon-primary-rgb), 0.2);
+  --glow-xl: 0 0 60px rgba(var(--neon-primary-rgb), 0.15),
+    0 0 120px rgba(var(--neon-primary-rgb), 0.05);
+
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains-mono);
+
+  --background: var(--bg-void);
+  --foreground: var(--text-primary);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-neon-primary: var(--neon-primary);
+  --color-neon-cyan: var(--neon-cyan);
+  --color-neon-magenta: var(--neon-magenta);
+  --color-bg-void: var(--bg-void);
+  --color-bg-surface: var(--bg-surface);
+  --color-bg-card: var(--bg-card);
+  --color-bg-card-hover: var(--bg-card-hover);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains-mono);
+}
+
+/* ── Base Styles ── */
+
+body {
+  background: var(--bg-void);
+  color: var(--text-primary);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  overflow-x: hidden;
+}
+
+/* ── Scan-line Overlay ── */
+
+.scan-lines::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.03) 2px,
+    rgba(0, 0, 0, 0.03) 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* ── Noise Texture ── */
+
+.noise-bg::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 256px 256px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ── Glitch Animation ── */
+
+@keyframes glitch {
+  0%,
+  100% {
+    text-shadow:
+      2px 0 var(--neon-cyan),
+      -2px 0 var(--neon-magenta);
+    transform: translate(0);
+  }
+  20% {
+    text-shadow:
+      -2px 0 var(--neon-cyan),
+      2px 0 var(--neon-magenta);
+    transform: translate(-1px, 1px);
+  }
+  40% {
+    text-shadow:
+      2px 0 var(--neon-magenta),
+      -2px 0 var(--neon-cyan);
+    transform: translate(1px, -1px);
+  }
+  60% {
+    text-shadow:
+      -1px 0 var(--neon-primary),
+      1px 0 var(--neon-magenta);
+    transform: translate(0);
+  }
+  80% {
+    text-shadow:
+      1px 0 var(--neon-cyan),
+      -1px 0 var(--neon-primary);
+    transform: translate(-1px, 0);
+  }
+}
+
+/* ── Neon Pulse ── */
+
+@keyframes neonPulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 8px rgba(var(--neon-primary-rgb), 0.3),
+      inset 0 0 8px rgba(var(--neon-primary-rgb), 0.05);
+  }
+  50% {
+    box-shadow:
+      0 0 20px rgba(var(--neon-primary-rgb), 0.5),
+      0 0 40px rgba(var(--neon-primary-rgb), 0.15),
+      inset 0 0 12px rgba(var(--neon-primary-rgb), 0.08);
+  }
+}
+
+/* ── Tile Entrance Stagger ── */
+
+@keyframes tileEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(24px) scale(0.95);
+    filter: blur(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+/* ── Fade In ── */
+
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Slide In from Right ── */
+
+@keyframes slideInRight {
+  0% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOutRight {
+  0% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+/* ── Backdrop Fade ── */
+
+@keyframes backdropFadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* ── Floating Particles ── */
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0) translateX(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(-100vh) translateX(20px);
+  }
+}
+
+/* ── Logo Glow Pulse ── */
+
+@keyframes logoPulse {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 12px rgba(var(--neon-primary-rgb), 0.4));
+  }
+  50% {
+    filter: drop-shadow(0 0 24px rgba(var(--neon-primary-rgb), 0.7))
+      drop-shadow(0 0 48px rgba(var(--neon-primary-rgb), 0.3));
+  }
+}
+
+/* ── Scrollbar ── */
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-void);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(var(--neon-primary-rgb), 0.2);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(var(--neon-primary-rgb), 0.4);
+}
+
+/* ── Selection ── */
+
+::selection {
+  background: rgba(var(--neon-primary-rgb), 0.3);
+  color: var(--text-primary);
+}
