@@ -28,22 +28,11 @@ export function LauncherHeader() {
         id="profile-button"
         type="button"
         onClick={handleOpenSettings}
-        className="absolute top-6 right-6 z-10 flex items-center gap-3
-          rounded-xl border border-[rgba(0,255,170,0.1)]
-          bg-[rgba(12,12,20,0.8)] px-4 py-2.5
-          font-mono text-sm text-[var(--text-secondary)]
-          backdrop-blur-sm transition-all duration-300
-          hover:border-[rgba(0,255,170,0.3)]
-          hover:text-[var(--neon-primary)]
-          hover:shadow-[0_0_16px_rgba(0,255,170,0.12)]
-          cursor-pointer"
+        className="absolute top-6 right-6 z-10 flex items-center gap-3 rounded-xl border border-[rgba(0,255,170,0.1)] bg-[rgba(12,12,20,0.8)] px-4 py-2.5 font-mono text-sm text-[var(--text-secondary)] backdrop-blur-sm transition-all duration-300 hover:border-[rgba(0,255,170,0.3)] hover:text-[var(--neon-primary)] hover:shadow-[0_0_16px_rgba(0,255,170,0.12)] cursor-pointer"
       >
         {/* Avatar circle */}
         <div
-          className="flex h-7 w-7 items-center justify-center rounded-full
-            border border-[rgba(0,255,170,0.2)]
-            bg-gradient-to-br from-[rgba(0,255,170,0.15)] to-transparent
-            text-xs font-bold text-[var(--neon-primary)]"
+          className="flex h-7 w-7 items-center justify-center rounded-full border border-[rgba(0,255,170,0.2)] bg-gradient-to-br from-[rgba(0,255,170,0.15)] to-transparent text-xs font-bold text-[var(--neon-primary)]"
         >
           {displayName.charAt(0).toUpperCase()}
         </div>
@@ -95,16 +84,14 @@ export function LauncherHeader() {
         {" "}
         {LABELS.tagline}
         <span
-          className="ml-1 inline-block h-4 w-0.5 bg-[var(--neon-primary)]
-            align-middle opacity-80"
+          className="ml-1 inline-block h-4 w-0.5 bg-[var(--neon-primary)] align-middle opacity-80"
           style={{ animation: "neonPulse 1.2s ease-in-out infinite" }}
         />
       </p>
 
       {/* Decorative horizontal line */}
       <div
-        className="h-px w-full max-w-md
-          bg-gradient-to-r from-transparent via-[rgba(0,255,170,0.2)] to-transparent"
+        className="h-px w-full max-w-md bg-gradient-to-r from-transparent via-[rgba(0,255,170,0.2)] to-transparent"
       />
     </header>
   );

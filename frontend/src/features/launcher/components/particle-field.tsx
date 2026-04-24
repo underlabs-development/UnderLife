@@ -1,52 +1,46 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 
 const PARTICLE_COUNT = 30;
 
 export function ParticleField() {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [particles, setParticles] = useState<Array<{ id: number; size: number; left: number; duration: number; delay: number }>>([]);
 
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const particles: HTMLDivElement[] = [];
-
+    const newParticles = [];
     for (let i = 0; i < PARTICLE_COUNT; i++) {
-      const particle = document.createElement("div");
-      const size = Math.random() * 2 + 1;
-      const left = Math.random() * 100;
-      const duration = Math.random() * 20 + 15;
-      const delay = Math.random() * 20;
-
-      particle.style.cssText = `
-        position: absolute;
-        bottom: -10px;
-        left: ${left}%;
-        width: ${size}px;
-        height: ${size}px;
-        border-radius: 50%;
-        background: var(--neon-primary);
-        opacity: 0;
-        animation: float ${duration}s linear ${delay}s infinite;
-        pointer-events: none;
-      `;
-
-      container.appendChild(particle);
-      particles.push(particle);
+      newParticles.push({
+        id: i,
+        size: Math.random() * 2 + 1,
+        left: Math.random() * 100,
+        duration: Math.random() * 20 + 15,
+        delay: Math.random() * 20,
+      });
     }
-
-    return () => {
-      particles.forEach((p) => p.remove());
-    };
+    setParticles(newParticles);
   }, []);
 
+  if (particles.length === 0) return null;
+
   return (
-    <div
-      ref={containerRef}
-      className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
-      aria-hidden="true"
-    />
+    <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
+      {particles.map((p) => (
+        <div
+          key={p.id}
+          style={{
+            position: "absolute",
+            bottom: "-10px",
+            left: `${p.left}%`,
+            width: `${p.size}px`,
+            height: `${p.size}px`,
+            borderRadius: "50%",
+            background: "var(--neon-primary)",
+            animation: `float ${p.duration}s linear -${p.delay}s infinite`,
+            pointerEvents: "none",
+          }}
+        />
+      ))}
+    </div>
   );
 }

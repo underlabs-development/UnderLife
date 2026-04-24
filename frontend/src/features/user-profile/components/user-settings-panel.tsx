@@ -1,6 +1,6 @@
 "use client";
 
-import { useUserProfileStore } from "../stores/user-profile-store";
+import { useUserProfileStore } from "@/features/user-profile/stores/user-profile-store";
 
 const LABELS = {
   title: "Settings",
@@ -44,9 +44,7 @@ export function UserSettingsPanel() {
       {/* Panel */}
       <aside
         id="settings-panel"
-        className="relative z-10 flex h-full w-full max-w-md flex-col
-          border-l border-[rgba(0,255,170,0.1)]
-          bg-[rgba(12,12,20,0.95)] backdrop-blur-md"
+        className="relative z-10 flex h-full w-full max-w-md flex-col border-l border-[rgba(0,255,170,0.1)] bg-[rgba(12,12,20,0.95)] backdrop-blur-md"
         style={{ animation: "slideInRight 0.4s cubic-bezier(0.16,1,0.3,1) both" }}
       >
         {/* Header */}
@@ -59,11 +57,7 @@ export function UserSettingsPanel() {
             id="close-settings"
             type="button"
             onClick={handleClose}
-            className="flex h-8 w-8 items-center justify-center rounded-lg
-              border border-[rgba(0,255,170,0.1)] text-[var(--text-muted)]
-              transition-all duration-200
-              hover:border-[rgba(0,255,170,0.3)] hover:text-[var(--neon-primary)]
-              cursor-pointer"
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-[rgba(0,255,170,0.1)] text-[var(--text-muted)] transition-all duration-200 hover:border-[rgba(0,255,170,0.3)] hover:text-[var(--neon-primary)] cursor-pointer"
             aria-label={LABELS.close}
           >
             <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
@@ -77,11 +71,7 @@ export function UserSettingsPanel() {
           {/* Avatar + Name */}
           <div className="mb-8 flex flex-col items-center gap-3">
             <div
-              className="flex h-20 w-20 items-center justify-center rounded-full
-                border-2 border-[rgba(0,255,170,0.2)]
-                bg-gradient-to-br from-[rgba(0,255,170,0.1)] to-transparent
-                font-mono text-2xl font-bold text-[var(--neon-primary)]
-                shadow-[0_0_20px_rgba(0,255,170,0.15)]"
+              className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-[rgba(0,255,170,0.2)] bg-gradient-to-br from-[rgba(0,255,170,0.1)] to-transparent font-mono text-2xl font-bold text-[var(--neon-primary)] shadow-[0_0_20px_rgba(0,255,170,0.15)]"
             >
               {displayName.charAt(0).toUpperCase()}
             </div>
@@ -125,13 +115,7 @@ export function UserSettingsPanel() {
           <button
             id="logout-button"
             type="button"
-            className="w-full rounded-xl border border-[rgba(255,0,170,0.2)]
-              bg-[rgba(255,0,170,0.05)] py-3 font-mono text-sm
-              text-[var(--neon-magenta)] transition-all duration-300
-              hover:border-[rgba(255,0,170,0.5)]
-              hover:bg-[rgba(255,0,170,0.1)]
-              hover:shadow-[0_0_20px_rgba(255,0,170,0.15)]
-              cursor-pointer"
+            className="w-full rounded-xl border border-[rgba(255,0,170,0.2)] bg-[rgba(255,0,170,0.05)] py-3 font-mono text-sm text-[var(--neon-magenta)] transition-all duration-300 hover:border-[rgba(255,0,170,0.5)] hover:bg-[rgba(255,0,170,0.1)] hover:shadow-[0_0_20px_rgba(255,0,170,0.15)] cursor-pointer"
           >
             {LABELS.logout}
           </button>
@@ -144,8 +128,7 @@ export function UserSettingsPanel() {
 function SettingsRow({ label, value }: { label: string; value: string }) {
   return (
     <div
-      className="flex items-center justify-between rounded-lg
-        border border-[rgba(0,255,170,0.06)] bg-[var(--bg-card)] px-4 py-3"
+      className="flex items-center justify-between rounded-lg border border-[rgba(0,255,170,0.06)] bg-[var(--bg-card)] px-4 py-3"
     >
       <span className="text-sm text-[var(--text-secondary)]">{label}</span>
       <span className="font-mono text-sm text-[var(--text-primary)]">{value}</span>
