@@ -1,0 +1,8 @@
+**
+!docker
+!lexroom_backend
+!submodules
+!manage.py
+!pyproject.toml
+!uv.lock
+!.python-version

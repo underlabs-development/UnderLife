@@ -1,0 +1,136 @@
+default_language_version:
+  python: python3.12
+fail_fast: false
+repos:
+  - repo: local
+    hooks:
+      - name: Checking missing migrations
+        id: missing-migrations
+        entry: "bash -c 'LOGFIRE_TOKEN=1 LITELLM_LOCAL_MODEL_COST_MAP=True DJANGO_SETTINGS_MODULE=lexroom_backend.settings.pre_commit uv run python manage.py makemigrations --check'"
+        language: python
+        always_run: true
+        pass_filenames: false
+      - name: OpenAPI 3 YAML specs
+        id: openapi-yaml-specs
+        entry: "bash -c 'LOGFIRE_TOKEN=1 LITELLM_LOCAL_MODEL_COST_MAP=True DJANGO_SETTINGS_MODULE=lexroom_backend.settings.pre_commit uv run python manage.py export_openapi_schema -v 3 --sorted --indent=2 --api lexroom_backend.api.api --output openapi.json && uv tool run yq --yaml-output < openapi.json > openapi.yaml && rm openapi.json && git add openapi.yaml'"
+        language: python
+        pass_filenames: false
+        always_run: true
+
+  # Generic checks and fixes (json and end-of-file after openapi.json generation)
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: check-json
+      - id: check-toml
+      - id: check-xml
+      - id: check-yaml
+      - id: debug-statements
+      - id: check-builtin-literals
+      - id: check-case-conflict
+      - id: check-docstring-first
+      - id: detect-private-key
+      - id: end-of-file-fixer
+        exclude: openapi.json
+        #     - id: no-commit-to-branch
+        #       args:
+        #         - --branch=main
+
+  # Specific checks and fixes for different file types
+  - repo: https://github.com/markdownlint/markdownlint
+    rev: v0.15.0
+    hooks:
+      - id: markdownlint
+        args:
+          - --style
+          - .markdownlint-style.rb
+
+  #  - repo: https://github.com/adrienverge/yamllint
+  #    rev: v1.37.1
+  #    hooks:
+  #      - id: yamllint
+  #        args:
+  #          - -d
+  #          - "{extends: default, rules: {comments: {min-spaces-from-content: 1}, document-start: {present: false}, line-length: disable}}"
+
+  - repo: https://github.com/google/yamlfmt
+    rev: v0.20.0
+    hooks:
+      - id: yamlfmt
+        args:
+          - -formatter
+          - eof_newline=true,retain_line_breaks_single=true
+
+  # Specific checks and fixes for Python files
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.21.2
+    hooks:
+      - id: pyupgrade
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.14.7
+    hooks:
+      # Linter
+      - id: ruff-check
+        args: [--fix, --exit-non-zero-on-fix]
+      # Formatter
+      - id: ruff-format
+
+  # Dependency management
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    rev: 0.9.13
+    hooks:
+      - id: uv-lock
+
+  - repo: https://github.com/adamchainz/django-upgrade
+    rev: '1.29.1'
+    hooks:
+      - id: django-upgrade
+        args: ['--target-version', '5.2']
+
+  # Check licenses of dependencies
+  - repo: https://github.com/FHPythonUtils/LicenseCheck
+    rev: 2025.1.0
+    hooks:
+      - id: licensecheck
+        # remove entry when all licenses are ok
+        entry: licensecheck
+        args:
+          # https://www.notion.so/lexroom/General-Purposes-1a41fb8e1f3f802ab234ff9f5d3ca804?source=copy_link#23b1fb8e1f3f808ab961ec1e9979d551
+          - --only-licenses
+          - apache bsd cc0-1.0 isc lgpl-3.0-only mit mpl psf
+          - --show-only-failing
+          # ignore packages not recognized by licensecheck
+          - --ignore-packages
+          - lex-common typing-extensions certifi
+
+  # Specific checks and fixes for Git
+  - repo: https://github.com/jorisroovers/gitlint
+    rev: v0.19.1
+    hooks:
+      - id: gitlint
+        args:
+          - -c
+          - title-match-regex.regex=^(build|bump|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)(\((LEX|WDA|INFRA|DATA)-[0-9]{,6}(,\s?(LEX|WDA|INFRA|DATA)-[0-9]{,6})*\))?:\s[A-Z\-_a-z0-9].*$
+          - -c
+          - title-max-length.line-length=120
+          - --ignore=B1,B6
+          - --msg-filename
+
+  # Security: Scan uv.lock file for dependencies with known vulnerabilities.
+  - repo: https://github.com/owenlamont/uv-secure
+    rev: 0.17.0
+    hooks:
+      - id: uv-secure
+        args:
+          # diskcache 5.6.3 - no fix available
+          - --ignore-vulns
+          - GHSA-w8v5-vhqr-4h9v
+
+# sets up .pre-commit-ci.yaml to ensure pre-commit dependencies stay up to date
+ci:
+  autoupdate_schedule: weekly
+  skip:
+    - uv-lock
+  submodules: false

@@ -1,0 +1,9 @@
+[project]
+name = "underlife"
+version = "0.1.0"
+requires-python = ">=3.14"
+dependencies = [
+    "django-cors-headers>=4.9.0",
+    "django-environ>=0.13.0",
+    "django-ninja>=1.6.2",
+]

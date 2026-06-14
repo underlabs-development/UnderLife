@@ -1,0 +1,24 @@
+#!/bin/bash
+
+set -o errexit
+set -o pipefail
+set -o nounset
+
+cd /app
+
+export DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE:-lexroom_backend.settings.production}
+
+#--access-logfile - \
+#--access-logformat '%(h)s %(l)s %(l)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s" %(l)s %(L)ss' \
+
+exec hypercorn \
+  --bind 0.0.0.0:8080 \
+  --error-logfile - \
+  --access-logfile - \
+  --access-logformat '%(h)s %(l)s %(l)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s" %(l)s %(L)ss' \
+  --worker-class uvloop \
+  --workers 2 \
+  --max-requests 200 \
+  --max-requests-jitter 50 \
+  --graceful-timeout 300 \
+  lexroom_backend.asgi:application
