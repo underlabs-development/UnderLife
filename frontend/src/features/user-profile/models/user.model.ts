@@ -6,9 +6,12 @@ export interface UserPreferences {
 
 export interface UserProfile {
   id: string;
-  username: string;
+  username: string | null;
+  firstName: string;
+  lastName: string;
   displayName: string;
   email: string;
   avatar: string;
+  lastLogin: string | null;
   preferences: UserPreferences;
 }

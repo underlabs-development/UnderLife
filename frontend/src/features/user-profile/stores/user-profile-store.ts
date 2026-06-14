@@ -2,11 +2,14 @@ import { create } from "zustand";
 import type { UserPreferences, UserProfile } from "../models/user.model";
 
 const MOCK_USER: UserProfile = {
-  id: "usr_001",
-  username: "operator",
-  displayName: "Operator",
-  email: "operator@under.os",
+  id: "",
+  username: null,
+  firstName: "",
+  lastName: "",
+  displayName: "",
+  email: "",
   avatar: "",
+  lastLogin: null,
   preferences: {
     theme: "dark",
     language: "en",
