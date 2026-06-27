@@ -42,7 +42,28 @@ export function MoneyFlowChart({
   net,
   categories,
 }: MoneyFlowChartProps) {
-  const cats = categories.filter((c) => c.total > 0);
+  // Cap the number of category nodes so labels never collide: keep the top few
+  // and merge the long tail into one "+N more" slice (the donut below shows the
+  // full breakdown).
+  const KEEP = 4;
+  const positive = [...categories]
+    .filter((c) => c.total > 0)
+    .sort((a, b) => b.total - a.total);
+  let cats = positive;
+  if (positive.length > KEEP) {
+    const head = positive.slice(0, KEEP - 1);
+    const tail = positive.slice(KEEP - 1);
+    cats = [
+      ...head,
+      {
+        category_id: null,
+        name: `+${tail.length} more`,
+        color: "#8ba4a0",
+        total: tail.reduce((s, c) => s + c.total, 0),
+        pct: tail.reduce((s, c) => s + c.pct, 0),
+      },
+    ];
+  }
   const saved = Math.max(0, net);
   const total = Math.max(income, expense);
 
@@ -68,6 +89,15 @@ export function MoneyFlowChart({
     const y0 = PAD + cumH + i * catGap;
     return { ...c, y0, h: c.total * scale, srcY0: PAD + cumH };
   });
+
+  // De-collide labels: push each label down so it never sits within MIN_LABEL_GAP
+  // of the previous one (pure scan — no mutation, for the React Compiler).
+  const MIN_LABEL_GAP = 15;
+  const catLabelY: number[] = catNodes.reduce<number[]>((acc, c) => {
+    const base = c.y0 + c.h / 2;
+    const prev = acc.length ? acc[acc.length - 1] : -Infinity;
+    return [...acc, Math.max(base, prev + MIN_LABEL_GAP)];
+  }, []);
 
   return (
     <section className="rounded-2xl border border-[rgba(0,255,170,0.08)] bg-[var(--bg-card)] p-4 sm:p-6">
@@ -185,7 +215,7 @@ export function MoneyFlowChart({
               <FlowLabel
                 key={`label-${i}`}
                 x={COL2_X0 - 12}
-                y={c.y0 + c.h / 2}
+                y={catLabelY[i]}
                 anchor="end"
                 text={`${c.name} · ${formatMoney(c.total)}`}
               />

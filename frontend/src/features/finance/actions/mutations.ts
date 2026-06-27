@@ -57,6 +57,36 @@ export async function setTransactionCategory(
   );
 }
 
+export async function setTransactionTransfer(
+  id: number,
+  isTransfer: boolean,
+): Promise<ActionResult<Transaction>> {
+  return run(() =>
+    financeFetch<Transaction>(`/transactions/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ is_transfer: isTransfer }),
+    }),
+  );
+}
+
+export async function detectTransfers(): Promise<ActionResult<{ paired: number }>> {
+  return run(() =>
+    financeFetch<{ paired: number }>("/detect-transfers", { method: "POST" }),
+  );
+}
+
+export async function recategorizeAll(): Promise<ActionResult<CategorizeResult>> {
+  return run(() => financeFetch<CategorizeResult>("/recategorize", { method: "POST" }));
+}
+
+export async function recategorizeTransaction(
+  id: number,
+): Promise<ActionResult<Transaction>> {
+  return run(() =>
+    financeFetch<Transaction>(`/transactions/${id}/recategorize`, { method: "POST" }),
+  );
+}
+
 // ── AI: categorization + rules + advisor ────────────────────────────────────
 
 export async function categorizeAll(): Promise<ActionResult<CategorizeResult>> {
@@ -100,11 +130,24 @@ export async function createCategory(input: {
   kind: TxKind;
   color: string;
   icon: string;
+  description?: string;
 }): Promise<ActionResult<Category>> {
   return run(() =>
     financeFetch<Category>("/categories", {
       method: "POST",
       body: JSON.stringify(input),
+    }),
+  );
+}
+
+export async function updateCategory(
+  id: number,
+  fields: { name?: string; color?: string; icon?: string; description?: string },
+): Promise<ActionResult<Category>> {
+  return run(() =>
+    financeFetch<Category>(`/categories/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(fields),
     }),
   );
 }

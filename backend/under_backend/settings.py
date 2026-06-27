@@ -37,9 +37,16 @@ SECRET_KEY = env(
 )
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# Local dev defaults to True; set DJANGO_DEBUG=False in production.
+DEBUG = env.bool("DJANGO_DEBUG", default=True)
 
 ALLOWED_HOSTS = [*env.list("DJANGO_ALLOWED_HOSTS", default=[]),]
+
+# Django requires the HTTPS origin(s) for admin/CSRF when behind a proxy.
+CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
+
+# We sit behind Cloudflare / a reverse proxy that terminates TLS.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 
 # Application definition
@@ -73,6 +80,8 @@ AUTHENTICATION_BACKENDS = [
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    # Serves admin/static files in production without nginx.
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -153,6 +162,23 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {
+        # Plain storage in dev (no manifest needed); compressed+hashed in prod.
+        "BACKEND": (
+            "django.contrib.staticfiles.storage.StaticFilesStorage"
+            if DEBUG
+            else "whitenoise.storage.CompressedManifestStaticFilesStorage"
+        )
+    },
+}
+
+# Secure cookies once TLS is on (i.e. not in local dev).
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
 
 # SECURITY
 # https://docs.djangoproject.com/en/6.0/ref/settings/#session-cookie-httponly

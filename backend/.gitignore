@@ -41,3 +41,5 @@ staticfiles/
 !.envs/testing
 
 migration_snapshots/
+
+secrets/

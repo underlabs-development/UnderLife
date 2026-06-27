@@ -96,12 +96,87 @@ class CascadeTests(TestCase):
         tx.refresh_from_db()
         self.assertEqual(tx.category_id, self.groceries.id)
 
+    def test_tier2_llm_creates_new_category(self):
+        tx = self._tx("ACME PET STORE")
+        # Model proposes a category name that doesn't exist yet.
+        with patch.object(cascade.llm, "classify", return_value=("Pets", 0.95)):
+            self.assertTrue(self._run(tx))
+        tx.refresh_from_db()
+        self.assertIsNotNone(tx.category_id)
+        self.assertEqual(tx.category.name, "Pets")
+        self.assertEqual(tx.category.kind, TxKind.EXPENSE)
+        self.assertFalse(tx.category.is_default)
+
+    def test_tier2_new_category_deduped_case_insensitive(self):
+        Category.objects.create(user=self.user, name="Pets", kind=TxKind.EXPENSE)
+        before = Category.objects.filter(user=self.user).count()
+        tx = self._tx("ACME PET STORE")
+        with patch.object(cascade.llm, "classify", return_value=("pets", 0.95)):
+            self._run(tx)
+        tx.refresh_from_db()
+        self.assertEqual(tx.category.name, "Pets")  # reused, not duplicated
+        self.assertEqual(Category.objects.filter(user=self.user).count(), before)
+
+    def test_tier2_no_new_category_when_disabled(self):
+        s = cascade.get_settings(self.user)
+        s.ai_create_categories = False
+        s.save()
+        tx = self._tx("ACME PET STORE")
+        with patch.object(cascade.llm, "classify", return_value=("Pets", 0.95)):
+            self.assertFalse(self._run(tx))
+        tx.refresh_from_db()
+        self.assertIsNone(tx.category_id)
+        self.assertFalse(Category.objects.filter(user=self.user, name="Pets").exists())
+
     def test_tier2_llm_below_threshold_left_for_review(self):
         tx = self._tx("Ambiguous Thing")
         with patch.object(cascade.llm, "classify", return_value=("Groceries", 0.3)):
             self.assertFalse(self._run(tx))
         tx.refresh_from_db()
         self.assertIsNone(tx.category_id)
+
+    def test_recategorize_one_overrides_existing(self):
+        other = Category.objects.get(user=self.user, name="Other", kind=TxKind.EXPENSE)
+        tx = self._tx("SUPERMARKET XYZ")
+        tx.category = other
+        tx.save()
+        with patch.object(cascade.llm, "classify", return_value=("Groceries", 0.9)):
+            self.assertTrue(cascade.recategorize_one(tx))
+        tx.refresh_from_db()
+        self.assertEqual(tx.category_id, self.groceries.id)
+
+    def test_recategorize_all_overwrites(self):
+        other = Category.objects.get(user=self.user, name="Other", kind=TxKind.EXPENSE)
+        a = self._tx("SHOP A")
+        a.category = other
+        a.save()
+        with patch.object(cascade.llm, "classify", return_value=("Groceries", 0.95)):
+            res = cascade.recategorize_all(self.user)
+        a.refresh_from_db()
+        self.assertEqual(a.category_id, self.groceries.id)
+        self.assertGreaterEqual(res["assigned"], 1)
+
+    def test_recategorize_all_preserves_when_llm_unavailable(self):
+        other = Category.objects.get(user=self.user, name="Other", kind=TxKind.EXPENSE)
+        a = self._tx("MYSTERY MERCHANT")
+        a.category = other
+        a.save()
+        # No cache, no rule, LLM returns None -> existing category must survive.
+        with patch.object(cascade.llm, "classify", return_value=None):
+            cascade.recategorize_all(self.user)
+        a.refresh_from_db()
+        self.assertEqual(a.category_id, other.id)
+
+    def test_recategorize_all_preserves_manual(self):
+        cascade.remember_categorization(
+            self.user, "ESSELUNGA MILANO", self.groceries, CatSource.MANUAL
+        )
+        tx = self._tx("ESSELUNGA MILANO 2026")
+        # Even if the model would say Health, the manual cache wins.
+        with patch.object(cascade.llm, "classify", return_value=("Health", 0.99)):
+            cascade.recategorize_all(self.user)
+        tx.refresh_from_db()
+        self.assertEqual(tx.category_id, self.groceries.id)
 
     def test_batch_counts(self):
         self._tx("ESSELUNGA")

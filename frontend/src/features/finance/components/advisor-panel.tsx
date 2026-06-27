@@ -42,16 +42,26 @@ export function AdvisorPanel({
             role="switch"
             aria-checked={aiEnabled}
             onClick={() => onToggleAi(!aiEnabled)}
-            className="relative h-5 w-9 rounded-full border transition-colors duration-300"
+            className="cursor-pointer transition-colors duration-300"
             style={{
-              borderColor: aiEnabled ? "rgba(0,255,170,0.5)" : "rgba(255,255,255,0.15)",
-              background: aiEnabled ? "rgba(0,255,170,0.15)" : "transparent",
+              boxSizing: "border-box",
+              width: 38,
+              height: 20,
+              borderRadius: 9999,
+              border: `1px solid ${aiEnabled ? "rgba(0,255,170,0.6)" : "rgba(255,255,255,0.2)"}`,
+              background: aiEnabled ? "rgba(0,255,170,0.2)" : "rgba(255,255,255,0.05)",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: aiEnabled ? "flex-end" : "flex-start",
+              padding: "0 3px",
             }}
           >
             <span
-              className="absolute top-0.5 h-3.5 w-3.5 rounded-full transition-all duration-300"
+              className="transition-all duration-300"
               style={{
-                left: aiEnabled ? "1.15rem" : "0.15rem",
+                width: 13,
+                height: 13,
+                borderRadius: 9999,
                 background: aiEnabled ? "var(--neon-primary)" : "var(--text-muted)",
                 boxShadow: aiEnabled ? "0 0 8px var(--neon-primary)" : "none",
               }}

@@ -21,6 +21,8 @@ class Category(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="finance_categories"
     )
     name = models.CharField(max_length=60)
+    # Optional hint describing what belongs here — fed to the AI categorizer.
+    description = models.CharField(max_length=200, blank=True, default="")
     kind = models.CharField(max_length=8, choices=TxKind.choices, default=TxKind.EXPENSE)
     # Hex colour used to tint charts and badges, e.g. "#00ffaa".
     color = models.CharField(max_length=9, default="#00ffaa")
@@ -66,6 +68,23 @@ class Transaction(models.Model):
     external_id = models.CharField(max_length=128, blank=True, default="")
     # Composite hash used to dedupe feeds that lack stable ids; blank for manual rows.
     dedup_hash = models.CharField(max_length=64, blank=True, default="", db_index=True)
+
+    # The bank account this came from (when imported); enables cross-account
+    # transfer detection. Null for manual / file-import rows.
+    account = models.ForeignKey(
+        "banksync.BankAccount",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="transactions",
+    )
+
+    # Internal transfer between the user's own accounts — excluded from all
+    # income/expense statistics. ``transfer_pair`` links the two legs when known.
+    is_transfer = models.BooleanField(default=False, db_index=True)
+    transfer_pair = models.ForeignKey(
+        "self", on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
 
     class Meta:
         ordering = ("-date", "-created_at")
@@ -207,6 +226,9 @@ class FinanceSettings(models.Model):
     confidence_threshold = models.FloatField(default=0.7)
     # When on, the savings advisor rewrites the deterministic tips with the LLM.
     ai_phrasing_enabled = models.BooleanField(default=True)
+    # When on, the categorizer may invent a new category if none of the
+    # existing ones fit a transaction.
+    ai_create_categories = models.BooleanField(default=True)
 
     def __str__(self) -> str:
         return f"FinanceSettings({self.user})"

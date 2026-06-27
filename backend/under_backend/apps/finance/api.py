@@ -70,12 +70,14 @@ class CategoryIn(Schema):
     kind: str = TxKind.EXPENSE
     color: str = "#00ffaa"
     icon: str = "tag"
+    description: str = ""
 
 
 class CategoryPatch(Schema):
     name: Optional[str] = None
     color: Optional[str] = None
     icon: Optional[str] = None
+    description: Optional[str] = None
 
 
 class CategoryOut(Schema):
@@ -84,6 +86,7 @@ class CategoryOut(Schema):
     kind: str
     color: str
     icon: str
+    description: str
     is_default: bool
 
 
@@ -101,6 +104,7 @@ class TransactionPatch(Schema):
     category_id: Optional[int] = None
     description: Optional[str] = None
     date: Optional[datetime.date] = None
+    is_transfer: Optional[bool] = None
 
 
 class TransactionOut(Schema):
@@ -112,6 +116,7 @@ class TransactionOut(Schema):
     category_color: Optional[str]
     description: str
     date: datetime.date
+    is_transfer: bool = False
 
 
 class BudgetIn(Schema):
@@ -168,6 +173,7 @@ def _tx_out(tx: Transaction) -> TransactionOut:
         category_color=tx.category.color if tx.category else None,
         description=tx.description,
         date=tx.date,
+        is_transfer=tx.is_transfer,
     )
 
 
@@ -261,7 +267,8 @@ def create_transaction(request, payload: TransactionIn):
 def update_transaction(request, tx_id: int, payload: TransactionPatch):
     tx = get_object_or_404(Transaction, id=tx_id, user=request.auth)
     data = payload.dict(exclude_unset=True)
-    if "category_id" in data:
+    category_changed = "category_id" in data
+    if category_changed:
         cid = data.pop("category_id")
         tx.category = (
             get_object_or_404(Category, id=cid, user=request.auth) if cid else None
@@ -270,13 +277,18 @@ def update_transaction(request, tx_id: int, payload: TransactionPatch):
         if data["amount"] <= 0:
             raise HttpError(400, "Amount must be greater than zero.")
         tx.amount = Decimal(str(data.pop("amount")))
-    manual_category_set = "category_id" in data and tx.category is not None
+    transfer_value = data.pop("is_transfer", None)
     for field, value in data.items():
         setattr(tx, field, value)
     tx.save()
+    # Mark/unmark transfer (and the linked leg) so both drop out of stats.
+    if transfer_value is not None:
+        from .transfers import set_transfer
+
+        set_transfer(tx, transfer_value)
     # A manual categorization is the strongest signal — teach the cache so
     # identical descriptions resolve automatically next time.
-    if manual_category_set:
+    if category_changed and tx.category is not None:
         cascade.remember_categorization(
             request.auth, tx.description, tx.category, CatSource.MANUAL
         )
@@ -402,7 +414,9 @@ class SummaryOut(Schema):
 
 def _totals_for(user, start: datetime.date, nxt: datetime.date) -> tuple[float, float]:
     rows = (
-        Transaction.objects.filter(user=user, date__gte=start, date__lt=nxt)
+        Transaction.objects.filter(
+            user=user, date__gte=start, date__lt=nxt, is_transfer=False
+        )
         .values("kind")
         .annotate(total=Sum("amount"))
     )
@@ -436,7 +450,7 @@ def summary(request, month: Optional[str] = None):
     # Spending breakdown by category (expenses only) for the month.
     cat_rows = (
         Transaction.objects.filter(
-            user=user, kind=TxKind.EXPENSE, date__gte=start, date__lt=nxt
+            user=user, kind=TxKind.EXPENSE, date__gte=start, date__lt=nxt, is_transfer=False
         )
         .values("category_id", "category__name", "category__color")
         .annotate(total=Sum("amount"))
@@ -514,14 +528,43 @@ def categorize(request):
     return CategorizeResult(**result)
 
 
+@finance_router.post("/recategorize", response=CategorizeResult)
+def recategorize(request):
+    """Re-run AI categorization over ALL transactions, overwriting existing
+    categories (manual ones are preserved)."""
+    return CategorizeResult(**cascade.recategorize_all(request.auth))
+
+
+@finance_router.post("/transactions/{tx_id}/recategorize", response=TransactionOut)
+def recategorize_transaction(request, tx_id: int):
+    """Force a fresh AI analysis of one transaction."""
+    tx = get_object_or_404(Transaction, id=tx_id, user=request.auth)
+    cascade.recategorize_one(tx)
+    tx.refresh_from_db()
+    return _tx_out(tx)
+
+
 @finance_router.get("/needs-review", response=List[TransactionOut])
 def needs_review(request):
     qs = (
-        Transaction.objects.filter(user=request.auth, category__isnull=True)
+        Transaction.objects.filter(
+            user=request.auth, category__isnull=True, is_transfer=False
+        )
         .select_related("category")
         .order_by("-date", "-created_at")
     )
     return [_tx_out(tx) for tx in qs]
+
+
+class DetectTransfersResult(Schema):
+    paired: int
+
+
+@finance_router.post("/detect-transfers", response=DetectTransfersResult)
+def detect_transfers_endpoint(request):
+    from .transfers import detect_transfers
+
+    return DetectTransfersResult(paired=detect_transfers(request.auth))
 
 
 # ── AI: categorization rules ─────────────────────────────────────────────────
@@ -627,20 +670,26 @@ def insights(request, month: Optional[str] = None):
 class SettingsSchema(Schema):
     confidence_threshold: float
     ai_phrasing_enabled: bool
+    ai_create_categories: bool
 
 
 class SettingsPatch(Schema):
     confidence_threshold: Optional[float] = None
     ai_phrasing_enabled: Optional[bool] = None
+    ai_create_categories: Optional[bool] = None
+
+
+def _settings_out(s) -> SettingsSchema:
+    return SettingsSchema(
+        confidence_threshold=s.confidence_threshold,
+        ai_phrasing_enabled=s.ai_phrasing_enabled,
+        ai_create_categories=s.ai_create_categories,
+    )
 
 
 @finance_router.get("/settings", response=SettingsSchema)
 def get_settings_endpoint(request):
-    s = cascade.get_settings(request.auth)
-    return SettingsSchema(
-        confidence_threshold=s.confidence_threshold,
-        ai_phrasing_enabled=s.ai_phrasing_enabled,
-    )
+    return _settings_out(cascade.get_settings(request.auth))
 
 
 @finance_router.patch("/settings", response=SettingsSchema)
@@ -651,8 +700,7 @@ def update_settings_endpoint(request, payload: SettingsPatch):
         s.confidence_threshold = max(0.0, min(1.0, data["confidence_threshold"]))
     if "ai_phrasing_enabled" in data:
         s.ai_phrasing_enabled = data["ai_phrasing_enabled"]
+    if "ai_create_categories" in data:
+        s.ai_create_categories = data["ai_create_categories"]
     s.save()
-    return SettingsSchema(
-        confidence_threshold=s.confidence_threshold,
-        ai_phrasing_enabled=s.ai_phrasing_enabled,
-    )
+    return _settings_out(s)

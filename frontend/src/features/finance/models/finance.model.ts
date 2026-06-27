@@ -6,6 +6,7 @@ export interface Category {
   kind: TxKind;
   color: string;
   icon: string;
+  description: string;
   is_default: boolean;
 }
 
@@ -18,6 +19,7 @@ export interface Transaction {
   category_color: string | null;
   description: string;
   date: string; // YYYY-MM-DD
+  is_transfer: boolean;
 }
 
 export interface Budget {
@@ -107,6 +109,7 @@ export interface CategorizeResult {
 export interface FinanceSettings {
   confidence_threshold: number;
   ai_phrasing_enabled: boolean;
+  ai_create_categories: boolean;
 }
 
 export interface Aspsp {

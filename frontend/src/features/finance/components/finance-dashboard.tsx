@@ -27,7 +27,9 @@ import {
 import {
   categorizeAll,
   deleteTransaction,
+  detectTransfers,
   setTransactionCategory,
+  setTransactionTransfer,
   updateFinanceSettings,
 } from "../actions/mutations";
 import {
@@ -47,6 +49,9 @@ import { AdvisorPanel } from "./advisor-panel";
 import { ReviewQueue } from "./review-queue";
 import { CategoryRules } from "./category-rules";
 import { BankConnections } from "./bank-connections";
+import { FinanceNav } from "./finance-nav";
+import { ActivityIndicator } from "./activity-indicator";
+import { track } from "../stores/activity-store";
 
 export function FinanceDashboard() {
   const [month, setMonth] = useState(currentMonth());
@@ -63,6 +68,7 @@ export function FinanceDashboard() {
   const [advisorBusy, setAdvisorBusy] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [bankNotice, setBankNotice] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   // Bumping this re-runs the loader effects without calling setState in handlers.
   const [reloadKey, setReloadKey] = useState(0);
@@ -73,17 +79,20 @@ export function FinanceDashboard() {
     (async () => {
       try {
         const [sum, txs, cats, buds, gls, review, rls, settings, banks] =
-          await Promise.all([
-            getSummary(month),
-            listTransactions(month),
-            listCategories(),
-            listBudgets(),
-            listGoals(),
-            listNeedsReview(),
-            listRules(),
-            getFinanceSettings(),
-            listBankConnections().catch(() => [] as BankConnection[]),
-          ]);
+          await track(
+            "Loading finances…",
+            Promise.all([
+              getSummary(month),
+              listTransactions(month),
+              listCategories(),
+              listBudgets(),
+              listGoals(),
+              listNeedsReview(),
+              listRules(),
+              getFinanceSettings(),
+              listBankConnections().catch(() => [] as BankConnection[]),
+            ]),
+          );
         if (!active) return;
         setSummary(sum);
         setTransactions(txs);
@@ -114,7 +123,7 @@ export function FinanceDashboard() {
     (async () => {
       if (active) setAdvisorBusy(true);
       try {
-        const adv = await getInsights(month);
+        const adv = await track("Generating savings insights…", getInsights(month));
         if (active) setAdvisor(adv);
       } catch {
         if (active) setAdvisor(null);
@@ -129,23 +138,48 @@ export function FinanceDashboard() {
 
   const refresh = useCallback(() => setReloadKey((k) => k + 1), []);
 
+  // Surface the result of a bank connect redirect (?bank=connected|error).
+  useEffect(() => {
+    const bank = new URLSearchParams(window.location.search).get("bank");
+    if (!bank) return;
+    window.history.replaceState({}, "", window.location.pathname);
+    queueMicrotask(() => {
+      if (bank === "connected") {
+        setBankNotice("Bank connected — click “Sync now” to import your transactions.");
+        setReloadKey((k) => k + 1);
+      } else if (bank === "error") {
+        setBankNotice("Bank connection failed or was cancelled. Please try again.");
+      }
+    });
+  }, []);
+
   const handleDeleteTransaction = async (id: number) => {
     await deleteTransaction(id);
     refresh();
   };
 
   const handleTransactionCreated = async () => {
-    await categorizeAll();
+    await track("AI is categorizing transactions…", categorizeAll());
     refresh();
   };
 
   const handleAutoCategorize = async () => {
-    await categorizeAll();
+    await track("AI is categorizing transactions…", categorizeAll());
     refresh();
   };
 
   const handleAssignCategory = async (id: number, categoryId: number) => {
     await setTransactionCategory(id, categoryId);
+    refresh();
+  };
+
+  const handleToggleTransfer = async (id: number, isTransfer: boolean) => {
+    await setTransactionTransfer(id, isTransfer);
+    refresh();
+  };
+
+  const handleDetectTransfers = async () => {
+    await track("Detecting transfers…", detectTransfers());
     refresh();
   };
 
@@ -221,16 +255,24 @@ export function FinanceDashboard() {
         </div>
       </header>
 
+      <FinanceNav reviewCount={needsReview.length} />
+
       {error && (
         <p className="mb-6 rounded-xl border border-[rgba(255,0,170,0.3)] bg-[rgba(255,0,170,0.05)] px-4 py-3 font-mono text-sm text-[var(--neon-magenta)]">
           {error}
         </p>
       )}
 
+      {bankNotice && (
+        <p className="mb-6 rounded-xl border border-[rgba(0,255,170,0.3)] bg-[rgba(0,255,170,0.05)] px-4 py-3 font-mono text-sm text-[var(--neon-primary)]">
+          {bankNotice}
+        </p>
+      )}
+
       {summary && (
         <>
           {/* Summary cards */}
-          <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <div className="mb-6 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
             <StatCard label="Income" delta={summary.income} accent="#00ffaa" index={0} />
             <StatCard
               label="Expenses"
@@ -286,12 +328,17 @@ export function FinanceDashboard() {
           </div>
 
           {/* Charts */}
-          <div className="mb-6 grid gap-6 lg:grid-cols-2">
+          <div className="mb-6 grid gap-6 md:grid-cols-2">
             <CashflowChart points={summary.cashflow} activeMonth={summary.month} />
             <CategoryDonut
               slices={summary.by_category}
               total={summary.expense.value}
             />
+          </div>
+
+          {/* Bank connections */}
+          <div className="mb-6">
+            <BankConnections connections={bankConnections} onChanged={refresh} />
           </div>
 
           {/* Transactions + budgets/goals */}
@@ -300,6 +347,8 @@ export function FinanceDashboard() {
               transactions={transactions}
               onAdd={() => setModalOpen(true)}
               onDelete={handleDeleteTransaction}
+              onToggleTransfer={handleToggleTransfer}
+              onDetectTransfers={handleDetectTransfers}
             />
             <div className="flex flex-col gap-6">
               <BudgetsPanel
@@ -326,6 +375,8 @@ export function FinanceDashboard() {
           onCreated={handleTransactionCreated}
         />
       )}
+
+      <ActivityIndicator />
     </div>
   );
 }

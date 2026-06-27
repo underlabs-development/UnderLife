@@ -56,7 +56,9 @@ def _f(v) -> float:
 def _totals(user, start, nxt) -> tuple[float, float]:
     income = expense = 0.0
     for row in (
-        Transaction.objects.filter(user=user, date__gte=start, date__lt=nxt)
+        Transaction.objects.filter(
+            user=user, date__gte=start, date__lt=nxt, is_transfer=False
+        )
         .values("kind")
         .annotate(total=Sum("amount"))
     ):
@@ -70,7 +72,7 @@ def _totals(user, start, nxt) -> tuple[float, float]:
 def _category_totals(user, start, nxt) -> list[dict]:
     return list(
         Transaction.objects.filter(
-            user=user, kind=TxKind.EXPENSE, date__gte=start, date__lt=nxt
+            user=user, kind=TxKind.EXPENSE, date__gte=start, date__lt=nxt, is_transfer=False
         )
         .values("category_id", "category__name")
         .annotate(total=Sum("amount"))
@@ -83,7 +85,7 @@ def _detect_recurring(user, ref: datetime.date) -> tuple[int, float]:
     roughly monthly with stable amounts. Returns (count, monthly_total)."""
     window_start = ref - datetime.timedelta(days=95)
     rows = Transaction.objects.filter(
-        user=user, kind=TxKind.EXPENSE, date__gte=window_start, date__lte=ref
+        user=user, kind=TxKind.EXPENSE, date__gte=window_start, date__lte=ref, is_transfer=False
     ).values_list("description", "amount", "date")
 
     groups: dict[str, list[tuple[Decimal, datetime.date]]] = {}

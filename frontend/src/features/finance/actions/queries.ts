@@ -16,8 +16,9 @@ export async function getSummary(month: string): Promise<Summary> {
   return financeFetch<Summary>(`/summary?month=${month}`);
 }
 
-export async function listTransactions(month: string): Promise<Transaction[]> {
-  return financeFetch<Transaction[]>(`/transactions?month=${month}`);
+export async function listTransactions(month?: string): Promise<Transaction[]> {
+  const q = month ? `?month=${month}` : "";
+  return financeFetch<Transaction[]>(`/transactions${q}`);
 }
 
 export async function listCategories(): Promise<Category[]> {
