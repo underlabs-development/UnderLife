@@ -58,6 +58,8 @@ INSTALLED_APPS = [
     "ninja_jwt",
     # Local apps
     "under_backend.apps.common",
+    "under_backend.apps.finance",
+    "under_backend.apps.banksync",
 ]
 
 # MIDDLEWARE
@@ -187,6 +189,20 @@ DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="noreply@under.os")
 # FRONTEND
 # ------------------------------------------------------------------------------
 FRONTEND_URL = env("FRONTEND_URL", default="http://localhost:3000")
+
+# BANK SYNC (Enable Banking)
+# ------------------------------------------------------------------------------
+# Master key for encrypting stored aggregator session tokens (Fernet key).
+# Generate: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+BANKSYNC_ENCRYPTION_KEY = env("BANKSYNC_ENCRYPTION_KEY", default="")
+ENABLEBANKING_APP_ID = env("ENABLEBANKING_APP_ID", default="")
+ENABLEBANKING_PRIVATE_KEY = env("ENABLEBANKING_PRIVATE_KEY", default="")
+ENABLEBANKING_PRIVATE_KEY_PATH = env("ENABLEBANKING_PRIVATE_KEY_PATH", default="")
+ENABLEBANKING_BASE_URL = env("ENABLEBANKING_BASE_URL", default="https://api.enablebanking.com")
+# Public HTTPS callback the bank redirects to (must match the registered app).
+ENABLEBANKING_REDIRECT_URL = env(
+    "ENABLEBANKING_REDIRECT_URL", default="http://localhost:8000/api/banksync/callback"
+)
 
 # LOGGING
 # ------------------------------------------------------------------------------

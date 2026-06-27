@@ -135,3 +135,11 @@ def confirm_password_reset(request, payload: PasswordResetConfirmSchema):
 
 
 api.add_router("/users/", users_router)
+
+from under_backend.apps.finance.api import finance_router  # noqa: E402
+
+api.add_router("/finance/", finance_router)
+
+from under_backend.apps.banksync.api import banksync_router  # noqa: E402
+
+api.add_router("/banksync/", banksync_router)
