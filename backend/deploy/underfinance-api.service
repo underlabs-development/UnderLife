@@ -6,11 +6,11 @@ Wants=postgresql.service
 [Service]
 User=underfinance
 Group=underfinance
-WorkingDirectory=/opt/underlife/backend
+WorkingDirectory=/opt/UnderLife/backend
 Environment=DJANGO_SETTINGS_MODULE=under_backend.settings
 # .env in the working dir is auto-loaded (DJANGO_READ_DOT_ENV_FILE=True)
-ExecStart=/opt/underlife/backend/.venv/bin/gunicorn under_backend.wsgi:application \
-    -c /opt/underlife/backend/deploy/gunicorn.conf.py
+ExecStart=/opt/UnderLife/backend/.venv/bin/gunicorn under_backend.wsgi:application \
+    -c /opt/UnderLife/backend/deploy/gunicorn.conf.py
 Restart=always
 RestartSec=3
 # Hardening

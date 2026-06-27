@@ -2,7 +2,7 @@
 
 Native deploy: **uv + Gunicorn + systemd**, Postgres locally, and your existing
 **Cloudflare Tunnel** for TLS/exposure. Target: Ubuntu 24.04 LTS. Run as a
-dedicated `underfinance` user; code lives in `/opt/underlife`.
+dedicated `underfinance` user; code lives in `/opt/UnderLife`.
 
 > The `docker/` folder in this repo is from a different project — ignore it.
 
@@ -18,9 +18,9 @@ sudo apt -y install postgresql postgresql-contrib git curl ca-certificates
 ## 2. App user + code
 
 ```bash
-sudo adduser --system --group --home /opt/underlife underfinance
-sudo mkdir -p /opt/underlife && sudo chown underfinance:underfinance /opt/underlife
-sudo -u underfinance git clone <YOUR_REPO_URL> /opt/underlife   # or scp the repo here
+sudo adduser --system --group --home /opt/UnderLife underfinance
+sudo mkdir -p /opt/UnderLife && sudo chown underfinance:underfinance /opt/UnderLife
+sudo -u underfinance git clone <YOUR_REPO_URL> /opt/UnderLife   # or scp the repo here
 ```
 
 ## 3. Install uv + dependencies (as the app user)
@@ -28,7 +28,7 @@ sudo -u underfinance git clone <YOUR_REPO_URL> /opt/underlife   # or scp the rep
 ```bash
 sudo -u underfinance bash -lc '
   curl -LsSf https://astral.sh/uv/install.sh | sh
-  cd /opt/underlife/backend
+  cd /opt/UnderLife/backend
   ~/.local/bin/uv sync            # installs Python 3.14 + all deps into .venv
 '
 ```
@@ -45,24 +45,24 @@ SQL
 ## 5. Environment file
 
 ```bash
-sudo -u underfinance cp /opt/underlife/backend/deploy/env.production.example \
-                        /opt/underlife/backend/.env
-sudo -u underfinance nano /opt/underlife/backend/.env
+sudo -u underfinance cp /opt/UnderLife/backend/deploy/env.production.example \
+                        /opt/UnderLife/backend/.env
+sudo -u underfinance nano /opt/UnderLife/backend/.env
 ```
 Fill in: `DJANGO_SECRET_KEY` (long random), DB password, `BANKSYNC_ENCRYPTION_KEY`
 (keep the SAME value you used locally or existing bank tokens won't decrypt),
 the Enable Banking app id, and the hostnames. Then copy your private key:
 
 ```bash
-sudo -u underfinance mkdir -p /opt/underlife/backend/secrets
+sudo -u underfinance mkdir -p /opt/UnderLife/backend/secrets
 # scp your Enable Banking .pem into that folder, then:
-sudo chmod 600 /opt/underlife/backend/secrets/*.pem
+sudo chmod 600 /opt/UnderLife/backend/secrets/*.pem
 ```
 
 ## 6. Migrate, static, admin
 
 ```bash
-cd /opt/underlife/backend
+cd /opt/UnderLife/backend
 sudo -u underfinance ~/.local/bin/uv run python manage.py migrate
 sudo -u underfinance ~/.local/bin/uv run python manage.py collectstatic --noinput
 sudo -u underfinance ~/.local/bin/uv run python manage.py createsuperuser
@@ -71,7 +71,7 @@ sudo -u underfinance ~/.local/bin/uv run python manage.py createsuperuser
 ## 7. Gunicorn as a systemd service
 
 ```bash
-sudo cp /opt/underlife/backend/deploy/underfinance-api.service \
+sudo cp /opt/UnderLife/backend/deploy/underfinance-api.service \
         /etc/systemd/system/underfinance-api.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now underfinance-api
@@ -130,8 +130,8 @@ falls back to rules/cache and the advisor shows plain text (no errors). Needs
 ## Redeploy (after code changes)
 
 ```bash
-cd /opt/underlife/backend
-sudo -u underfinance git -C /opt/underlife pull
+cd /opt/UnderLife/backend
+sudo -u underfinance git -C /opt/UnderLife pull
 sudo -u underfinance ~/.local/bin/uv sync
 sudo -u underfinance ~/.local/bin/uv run python manage.py migrate
 sudo -u underfinance ~/.local/bin/uv run python manage.py collectstatic --noinput
@@ -158,15 +158,15 @@ to `main` that touches `backend/**` runs `deploy/deploy.sh` locally:
    sudo chmod 440 /etc/sudoers.d/underfinance-deploy
    ```
 
-2. **Make sure `/opt/underlife` can pull unattended.** Public repo: nothing to
+2. **Make sure `/opt/UnderLife` can pull unattended.** Public repo: nothing to
    do. Private repo: add a read-only **deploy key** and use the SSH remote:
    ```bash
-   sudo -u underfinance ssh-keygen -t ed25519 -f /opt/underlife/.ssh-deploy -N ''
-   # add /opt/underlife/.ssh-deploy.pub to GitHub repo → Settings → Deploy keys (read-only)
-   sudo -u underfinance git -C /opt/underlife remote set-url origin git@github.com:<OWNER>/<REPO>.git
+   sudo -u underfinance ssh-keygen -t ed25519 -f /opt/UnderLife/.ssh-deploy -N ''
+   # add /opt/UnderLife/.ssh-deploy.pub to GitHub repo → Settings → Deploy keys (read-only)
+   sudo -u underfinance git -C /opt/UnderLife remote set-url origin git@github.com:<OWNER>/<REPO>.git
    # point git at the key:
    sudo -u underfinance git config --global core.sshCommand \
-     "ssh -i /opt/underlife/.ssh-deploy -o IdentitiesOnly=yes"
+     "ssh -i /opt/UnderLife/.ssh-deploy -o IdentitiesOnly=yes"
    ```
 
 3. **Install the runner** (as the `underfinance` user). Grab the exact download
@@ -180,7 +180,7 @@ to `main` that touches `backend/**` runs `deploy/deploy.sh` locally:
      ./config.sh --url https://github.com/<OWNER>/<REPO> \
                  --token <RUNNER_TOKEN> --labels underfinance --unattended
    '
-   cd ~underfinance/actions-runner        # = /opt/underlife/actions-runner
+   cd ~underfinance/actions-runner        # = /opt/UnderLife/actions-runner
    sudo ./svc.sh install underfinance     # runs the runner as the underfinance user
    sudo ./svc.sh start
    ```
@@ -191,7 +191,7 @@ to `main` that touches `backend/**` runs `deploy/deploy.sh` locally:
    **Actions** tab (it has a manual *Run workflow* button). Watch it in Actions,
    and on the box: `journalctl -u underfinance-api -f`.
 
-> The runner needs the initial `/opt/underlife` clone + `.env` + `secrets/` to
+> The runner needs the initial `/opt/UnderLife` clone + `.env` + `secrets/` to
 > already exist (steps 2–5 above) — CD only updates code and restarts; it never
 > touches `.env`, `secrets/`, `.venv`, or the database.
 

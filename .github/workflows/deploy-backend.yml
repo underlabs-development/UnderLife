@@ -19,4 +19,4 @@ jobs:
     runs-on: [self-hosted, underfinance]
     steps:
       - name: Pull, migrate, restart
-        run: bash /opt/underlife/backend/deploy/deploy.sh
+        run: bash /opt/UnderLife/backend/deploy/deploy.sh
