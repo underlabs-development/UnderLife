@@ -1,0 +1,22 @@
+name: Deploy backend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - ".github/workflows/deploy-backend.yml"
+  workflow_dispatch: {}
+
+# Never run two deploys at once; let an in-flight one finish.
+concurrency:
+  group: deploy-backend
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    # Runs on the self-hosted runner installed on the Ubuntu box.
+    runs-on: [self-hosted, underfinance]
+    steps:
+      - name: Pull, migrate, restart
+        run: bash /opt/underlife/backend/deploy/deploy.sh
