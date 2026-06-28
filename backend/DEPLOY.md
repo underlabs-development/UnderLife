@@ -63,9 +63,9 @@ sudo chmod 600 /opt/UnderLife/backend/secrets/*.pem
 
 ```bash
 cd /opt/UnderLife/backend
-sudo -u underfinance ~/.local/bin/uv run python manage.py migrate
-sudo -u underfinance ~/.local/bin/uv run python manage.py collectstatic --noinput
-sudo -u underfinance ~/.local/bin/uv run python manage.py createsuperuser
+sudo -u underfinance /opt/UnderLife/.local/bin/uv run python manage.py migrate
+sudo -u underfinance /opt/UnderLife/.local/bin/uv run python manage.py collectstatic --noinput
+sudo -u underfinance /opt/UnderLife/.local/bin/uv run python manage.py createsuperuser
 ```
 
 ## 7. Gunicorn as a systemd service
@@ -151,11 +151,23 @@ to `main` that touches `backend/**` runs `deploy/deploy.sh` locally:
 
 ### One-time setup on the server
 
-1. **Let the runner restart the service without a password:**
+1. **Ownership + sudo rules.** The deploy always runs as `underfinance` (the repo
+   owner); the runner elevates to it with `sudo -u underfinance`. Set
+   `RUNNER_USER` to the user the runner runs as (the user you configured it with —
+   check with `ps -o user= -C Runner.Listener | head -1`):
    ```bash
-   echo 'underfinance ALL=(root) NOPASSWD: /usr/bin/systemctl restart underfinance-api' \
-     | sudo tee /etc/sudoers.d/underfinance-deploy
+   # the repo must be owned by underfinance
+   sudo chown -R underfinance:underfinance /opt/UnderLife
+
+   RUNNER_USER=<your-runner-user>
+   sudo tee /etc/sudoers.d/underfinance-deploy >/dev/null <<EOF
+   # runner may run the deploy as underfinance, no password
+   $RUNNER_USER ALL=(underfinance) NOPASSWD: /opt/UnderLife/backend/deploy/deploy.sh
+   # underfinance may restart the API service, no password
+   underfinance ALL=(root) NOPASSWD: /usr/bin/systemctl restart underfinance-api
+   EOF
    sudo chmod 440 /etc/sudoers.d/underfinance-deploy
+   sudo visudo -c     # validate syntax
    ```
 
 2. **Make sure `/opt/UnderLife` can pull unattended.** Public repo: nothing to
