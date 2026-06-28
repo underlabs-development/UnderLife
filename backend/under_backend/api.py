@@ -136,6 +136,54 @@ def confirm_password_reset(request, payload: PasswordResetConfirmSchema):
 
 api.add_router("/users/", users_router)
 
+
+# ── /logs — live backend log tail (admin only) ─────────────────────────────────
+
+logs_router = Router(auth=JWTAuth())
+
+# Show at most this many bytes on the first (offset-less) request.
+_LOG_TAIL_BYTES = 64 * 1024
+
+
+class LogChunk(Schema):
+    lines: list[str]
+    offset: int  # byte offset to pass back on the next poll
+    size: int    # current file size
+
+
+@logs_router.get("/", response=LogChunk)
+def tail_logs(request, offset: int = -1, max_bytes: int = 200_000):
+    if not getattr(request.auth, "is_superuser", False):
+        raise HttpError(403, "Admin only.")
+
+    path = getattr(settings, "LOG_FILE", None)
+    if not path or not path.exists():
+        return LogChunk(lines=[], offset=0, size=0)
+
+    size = path.stat().st_size
+    # First call (offset < 0) or rotation/truncation → start from a tail window.
+    if offset < 0 or offset > size:
+        start = max(0, size - _LOG_TAIL_BYTES)
+    else:
+        start = offset
+    # Cap how much we return per poll.
+    end = min(size, start + max(1024, min(max_bytes, 1_000_000)))
+
+    with open(path, "rb") as fh:
+        fh.seek(start)
+        data = fh.read(end - start)
+
+    # Only emit complete lines; advance the offset to the last newline.
+    nl = data.rfind(b"\n")
+    if nl == -1:
+        return LogChunk(lines=[], offset=start, size=size)
+    text = data[: nl + 1].decode("utf-8", errors="replace")
+    lines = [ln for ln in text.splitlines() if ln]
+    return LogChunk(lines=lines, offset=start + nl + 1, size=size)
+
+
+api.add_router("/logs", logs_router)
+
 from under_backend.apps.finance.api import finance_router  # noqa: E402
 
 api.add_router("/finance/", finance_router)

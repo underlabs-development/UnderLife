@@ -233,8 +233,13 @@ ENABLEBANKING_REDIRECT_URL = env(
 # LOGGING
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/6.0/ref/settings/#logging
-# See https://docs.djangoproject.com/en/6.0/topics/logging for
-# more details on how to customize your logging configuration.
+# Logs go to the console (→ journald) AND to a tailable file that powers the
+# in-app live log viewer (GET /api/logs). WatchedFileHandler is multiprocess-safe
+# and cooperates with logrotate.
+LOG_DIR = BASE_DIR / "logs"
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+LOG_FILE = LOG_DIR / "app.log"
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -249,8 +254,14 @@ LOGGING = {
             "class": "logging.StreamHandler",
             "formatter": "verbose",
         },
+        "file": {
+            "level": "INFO",
+            "class": "logging.handlers.WatchedFileHandler",
+            "filename": str(LOG_FILE),
+            "formatter": "verbose",
+        },
     },
-    "root": {"level": "INFO", "handlers": ["console"]},
+    "root": {"level": "INFO", "handlers": ["console", "file"]},
 }
 
 # NINJA_JWT

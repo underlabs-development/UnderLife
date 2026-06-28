@@ -43,3 +43,5 @@ staticfiles/
 migration_snapshots/
 
 secrets/
+# Runtime logs
+logs/
